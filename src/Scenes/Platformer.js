@@ -7,7 +7,7 @@ class Platformer extends Phaser.Scene {
         // variables and settings
         this.ACCELERATION = 500;
         this.DRAG = 4000;    // DRAG < ACCELERATION = icy slide
-        this.physics.world.gravity.y = 100;
+        this.physics.world.gravity.y = 500;
         this.JUMP_VELOCITY = -900;
     }
 
@@ -24,10 +24,16 @@ class Platformer extends Phaser.Scene {
         // Create a layer
         this.groundLayer = this.map.createLayer("Ground-n-Platforms", this.tileset, 0, 0);
         this.groundLayer.setScale(2.0);
+        this.waterLayer = this.map.createLayer("Water", this.tileset, 0, 0);
+        this.waterLayer.setScale(2.0);
 
         // Make it collidable
         this.groundLayer.setCollisionByProperty({
             collides: true
+        });
+
+        this.waterLayer.setCollisionByProperty({
+            drown: true
         });
 
         // set up player avatar
@@ -36,6 +42,7 @@ class Platformer extends Phaser.Scene {
 
         // Enable collision handling
         this.physics.add.collider(my.sprite.player, this.groundLayer);
+        this.physics.add.collider(my.sprite.player, this.waterLayer, () => my.sprite.player.setPosition(game.config.width/4, game.config.height/2));
 
         // set up Phaser-provided cursor key input
         cursors = this.input.keyboard.createCursorKeys();
