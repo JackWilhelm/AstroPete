@@ -5,27 +5,30 @@ class Platformer extends Phaser.Scene {
 
     init() {
         // variables and settings
-        this.ACCELERATION = 500;
+        this.ACCELERATION = 400;
         this.DRAG = 4000;    // DRAG < ACCELERATION = icy slide
-        this.physics.world.gravity.y = 500;
-        this.JUMP_VELOCITY = -900;
+        this.physics.world.gravity.y = 1100;
+        this.JUMP_VELOCITY = -600;
     }
 
     create() {
         // Create a new tilemap game object which uses 18x18 pixel tiles, and is
         // 45 tiles wide and 25 tiles tall.
-        this.map = this.add.tilemap("platformer-level-1", 18, 18, 45, 25);
+        this.map = this.add.tilemap("platformer-level-1", 18, 18, 120, 25);
 
         // Add a tileset to the map
         // First parameter: name we gave the tileset in Tiled
         // Second parameter: key for the tilesheet (from this.load.image in Load.js)
         this.tileset = this.map.addTilesetImage("kenny_tilemap_packed", "tilemap_tiles");
+        this.indtileset = this.map.addTilesetImage("kenny_industrymap_packed", "indmap_tiles");
 
         // Create a layer
         this.groundLayer = this.map.createLayer("Ground-n-Platforms", this.tileset, 0, 0);
         this.groundLayer.setScale(2.0);
         this.waterLayer = this.map.createLayer("Water", this.tileset, 0, 0);
         this.waterLayer.setScale(2.0);
+        this.indLayer = this.map.createLayer("Industry", this.indtileset, 0, 0);
+        this.indLayer.setScale(2.0);
 
         // Make it collidable
         this.groundLayer.setCollisionByProperty({
@@ -36,13 +39,21 @@ class Platformer extends Phaser.Scene {
             drown: true
         });
 
+        this.indLayer.setCollisionByProperty({
+            collides: true
+        });
+
+        this.physics.world.setBounds(0, 0, this.map.widthInPixels*2, this.map.heightInPixels*2);
+
         // set up player avatar
-        my.sprite.player = this.physics.add.sprite(game.config.width/4, game.config.height/2, "platformer_characters", "tile_0000.png").setScale(SCALE)
+        my.sprite.player = this.physics.add.sprite(game.config.width/4-300, game.config.height/2, "platformer_characters", "tile_0000.png").setScale(SCALE)
         my.sprite.player.setCollideWorldBounds(true);
+        my.sprite.player.setMaxVelocity(300, 1000);
 
         // Enable collision handling
         this.physics.add.collider(my.sprite.player, this.groundLayer);
-        this.physics.add.collider(my.sprite.player, this.waterLayer, () => my.sprite.player.setPosition(game.config.width/4, game.config.height/2));
+        this.physics.add.collider(my.sprite.player, this.waterLayer, () => my.sprite.player.setPosition(game.config.width/4-300, game.config.height/2));
+        this.physics.add.collider(my.sprite.player, this.indLayer);
 
         // set up Phaser-provided cursor key input
         cursors = this.input.keyboard.createCursorKeys();
@@ -53,7 +64,10 @@ class Platformer extends Phaser.Scene {
             this.physics.world.debugGraphic.clear()
         }, this);
 
-        this.stickLand = false;
+        this.cameras.main.setBounds(0, 0, this.map.widthInPixels*2, this.map.heightInPixels*2);
+        this.cameras.main.startFollow(my.sprite.player, true, 0.25, 0.25); // (target, [,roundPixels][,lerpX][,lerpY])
+        this.cameras.main.setDeadzone(50, 50);
+        this.cameras.main.setZoom(this.SCALE);
     }
 
     update() {
@@ -83,15 +97,11 @@ class Platformer extends Phaser.Scene {
         // note that we need body.blocked rather than body.touching b/c the former applies to tilemap tiles and the latter to the "ground"
         if(!my.sprite.player.body.blocked.down) {
             my.sprite.player.anims.play('jump');
-            this.stickLand = true;
         }
         if(my.sprite.player.body.blocked.down && Phaser.Input.Keyboard.JustDown(cursors.up)) {
             // TODO: set a Y velocity to have the player "jump" upwards (negative Y direction)
             my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
         }
-        if(this.stickLand && my.sprite.player.body.blocked.down) {
-            my.sprite.player.body.setVelocityX(0);
-            this.stickLand = false;
-        }
+        
     }
 }
