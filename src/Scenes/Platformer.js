@@ -73,13 +73,47 @@ class Platformer extends Phaser.Scene {
 
         my.vfx.walking = this.add.particles(0, 0, "kenny-particles", {
             frame: ['circle_01.png', 'circle_02.png', 'circle_03.png'],
-            scale: {start: 0.02, end: 0.05},
+            scale: {start: 0.01, end: 0.02},
             lifespan: 350,
             gravityY: -400,
-            alpha: {start: 1, end: 0.1}, 
+            alpha: {start: 1, end: 0.1},
         });
 
         my.vfx.walking.stop();
+
+        my.vfx.jumping = this.add.particles(0, 0, "kenny-particles", {
+            frame: ['muzzle_01.png', 'muzzle_02.png', 'muzzle_03.png'],
+            scale: 0.1,
+            lifespan: 200,
+            alpha: {start: 1, end: 0.1}, 
+        });
+
+        my.vfx.jumping.stop();
+
+        my.vfx.landing = this.add.particles(0, 0, "kenny-particles", {
+            frame: ['smoke_01.png', 'smoke_02.png', 'smoke_03.png'],
+            scale: {start: 0.1, end: 0.01},
+            lifespan: 400,
+            random: true,
+            alpha: {start: 0.5, end: 0.1}, 
+            quantity: 20
+        });
+
+        my.vfx.landing.stop();
+
+        my.vfx.collecting = this.add.particles(0, 0, "kenny-particles", {
+            frame: "symbol_02.png",
+            radial: true,
+            angle: {min:180, max: 360, step: 10},
+            scale: {start: 0.1, end: 0.01},
+            lifespan: 800,
+            duration: 800,
+            speed: this.PARTICLE_VELOCITY*2,
+            alpha: {start: 1, end: 0.1}, 
+            stopAfter: 5
+        });
+
+        my.vfx.collecting.stop();
 
         this.coins = this.map.createFromObjects("Objects", {
             name: "coin",
@@ -90,14 +124,37 @@ class Platformer extends Phaser.Scene {
         this.physics.world.enable(this.coins, Phaser.Physics.Arcade.STATIC_BODY);
 
         this.coinGroup = this.add.group(this.coins);
-        this.coinsGroup = this.add.group({
-            setScale: { x: 5, y: 5}
-        });
 
+        this.flags = this.map.createFromObjects("Objects", [{
+            name: "flag",
+            key: "tilemap_sheet",
+            frame: 111
+        },{
+            name: "flagpole",
+            key: "tilemap_sheet",
+            frame: 131
+        }]);
+
+        this.physics.world.enable(this.flags, Phaser.Physics.Arcade.STATIC_BODY);
+
+        this.flagGroup = this.add.group(this.flags);
 
         this.physics.add.overlap(my.sprite.player, this.coinGroup, (obj1, obj2) => {
+            my.vfx.collecting.startFollow(obj2, obj2.displayWidth/2, obj2.displayHeight/2, false);
+
+            my.vfx.collecting.start();
+
+
             obj2.destroy(); // remove coin on overlap
         });
+
+        this.physics.add.overlap(my.sprite.player, this.flagGroup, (obj1, obj2) => {
+            console.log("you win");
+        });
+
+        this.inAir = false;
+
+
     }
 
     update() {
@@ -151,11 +208,26 @@ class Platformer extends Phaser.Scene {
         // note that we need body.blocked rather than body.touching b/c the former applies to tilemap tiles and the latter to the "ground"
         if(!my.sprite.player.body.blocked.down) {
             my.sprite.player.anims.play('jump');
+            this.InAir = true;
         }
         if(my.sprite.player.body.blocked.down && Phaser.Input.Keyboard.JustDown(cursors.up)) {
             // TODO: set a Y velocity to have the player "jump" upwards (negative Y direction)
             my.sprite.player.body.setVelocityY(this.JUMP_VELOCITY);
+            my.vfx.jumping.startFollow(my.sprite.player, 0, 0, false);
+
+            my.vfx.jumping.start();
+        } else {
+            my.vfx.jumping.stop();
         }
-        
+        if(my.sprite.player.body.blocked.down && this.InAir) {
+            this.InAir = false;
+            my.vfx.landing.startFollow(my.sprite.player, 0, my.sprite.player.displayHeight/2-5, false);
+
+            my.vfx.landing.setParticleSpeed(-this.PARTICLE_VELOCITY, 0);
+
+            my.vfx.landing.start();
+        } else {
+            my.vfx.landing.stop();
+        }
     }
 }
