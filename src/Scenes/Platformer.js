@@ -60,10 +60,12 @@ class Platformer extends Phaser.Scene {
         // set up Phaser-provided cursor key input
         cursors = this.input.keyboard.createCursorKeys();
 
+        this.physics.world.drawDebug = false;
+
         // debug key listener (assigned to D key)
         this.input.keyboard.on('keydown-D', () => {
             this.physics.world.drawDebug = this.physics.world.drawDebug ? false : true
-            this.physics.world.debugGraphic.clear()
+            this.physics.world.debugGraphic.clear();
         }, this);
 
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
@@ -115,15 +117,7 @@ class Platformer extends Phaser.Scene {
 
         my.vfx.collecting.stop();
 
-        this.coins = this.map.createFromObjects("Objects", {
-            name: "coin",
-            key: "tilemap_sheet",
-            frame: 151
-        });
-
-        this.physics.world.enable(this.coins, Phaser.Physics.Arcade.STATIC_BODY);
-
-        this.coinGroup = this.add.group(this.coins);
+        this.setup();
 
         this.flags = this.map.createFromObjects("Objects", [{
             name: "flag",
@@ -139,19 +133,18 @@ class Platformer extends Phaser.Scene {
 
         this.flagGroup = this.add.group(this.flags);
 
-        this.physics.add.overlap(my.sprite.player, this.coinGroup, (obj1, obj2) => {
-            my.vfx.collecting.startFollow(obj2, obj2.displayWidth/2, obj2.displayHeight/2, false);
-
-            my.vfx.collecting.start();
-
-
-            obj2.destroy(); // remove coin on overlap
-
-            this.playerCollect.play();
-        });
-
         this.physics.add.overlap(my.sprite.player, this.flagGroup, (obj1, obj2) => {
-            console.log("you win");
+            if(!this.gameOver) {
+                this.gameOver = true;
+                this.endText.x = this.cameras.main.worldView.x + this.cameras.main.width/4;
+                this.endText.y = 70;
+                this.endText.visible = true;
+                this.endText.setText("You Win!\nScore: " + this.score + "\nR to play again");
+                my.vfx.walking.stop();
+                my.sprite.player.body.setVelocity(0);
+                my.sprite.player.body.setAccelerationX(0);
+                my.sprite.player.anims.play('idle');
+            }
         });
 
         this.inAir = false;
@@ -159,9 +152,13 @@ class Platformer extends Phaser.Scene {
         this.playerLand = this.sound.add("playerLand");
         this.playerCollect = this.sound.add("playerCollect");
         this.playerJump = this.sound.add("playerJump");
+
+        this.rKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R); 
     }
 
     update() {
+        if(!this.gameOver) {
+            console.log(this.cameras.main.width);
         if(cursors.left.isDown) {
             // TODO: have the player accelerate to the left
             my.sprite.player.body.setAccelerationX(-this.ACCELERATION);
@@ -238,5 +235,45 @@ class Platformer extends Phaser.Scene {
         } else {
             my.vfx.landing.stop();
         }
+    } else {
+        if (this.rKey.isDown) {
+            while(this.coinGroup.children.entries.length > 0) {
+                this.coinGroup.children.entries[0].destroy();
+            }
+            this.endText.visible = false;
+            this.setup();
+        }
     }
+}
+
+setup() {
+    this.score = 0;
+    this.endText = this.add.text(this.cameras.main.worldView.x + this.cameras.main.width / 2, this.cameras.main.worldView.y + this.cameras.main.height / 2, "You Win!\nScore: " + this.score + "\nR to play again", 'Default').setOrigin(0.5);
+    this.endText.setScale(2);
+    this.endText.setDepth(10000);
+    this.gameOver = false;
+    my.sprite.player.setPosition(game.config.width/4-300, game.config.height/2-150);
+    this.inAir = false;
+    this.endText.visible = false;
+    this.coins = this.map.createFromObjects("Objects", {
+        name: "coin",
+        key: "tilemap_sheet",
+        frame: 151
+    });
+    this.physics.world.enable(this.coins, Phaser.Physics.Arcade.STATIC_BODY);
+    this.coinGroup = this.add.group(this.coins);
+
+    this.physics.add.overlap(my.sprite.player, this.coinGroup, (obj1, obj2) => {
+        my.vfx.collecting.startFollow(obj2, obj2.displayWidth/2, obj2.displayHeight/2, false);
+
+        my.vfx.collecting.start();
+
+
+        obj2.destroy(); // remove coin on overlap
+
+        this.playerCollect.play();
+        this.score += 1;
+    });
+    
+}
 }
