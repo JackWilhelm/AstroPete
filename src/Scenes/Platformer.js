@@ -146,6 +146,8 @@ class Platformer extends Phaser.Scene {
 
 
             obj2.destroy(); // remove coin on overlap
+
+            this.playerCollect.play();
         });
 
         this.physics.add.overlap(my.sprite.player, this.flagGroup, (obj1, obj2) => {
@@ -154,7 +156,9 @@ class Platformer extends Phaser.Scene {
 
         this.inAir = false;
 
-
+        this.playerLand = this.sound.add("playerLand");
+        this.playerCollect = this.sound.add("playerCollect");
+        this.playerJump = this.sound.add("playerJump");
     }
 
     update() {
@@ -190,6 +194,7 @@ class Platformer extends Phaser.Scene {
 
             // Only play smoke effect if touching the ground
 
+            
             if (my.sprite.player.body.blocked.down) {
 
                 my.vfx.walking.start();
@@ -216,6 +221,8 @@ class Platformer extends Phaser.Scene {
             my.vfx.jumping.startFollow(my.sprite.player, 0, 0, false);
 
             my.vfx.jumping.start();
+
+            this.playerJump.play();
         } else {
             my.vfx.jumping.stop();
         }
@@ -226,6 +233,8 @@ class Platformer extends Phaser.Scene {
             my.vfx.landing.setParticleSpeed(-this.PARTICLE_VELOCITY, 0);
 
             my.vfx.landing.start();
+
+            this.playerLand.play();
         } else {
             my.vfx.landing.stop();
         }
